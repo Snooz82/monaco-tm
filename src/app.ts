@@ -22,7 +22,7 @@ interface DemoScopeNameInfo extends ScopeNameInfo {
   path: string;
 }
 
-main('python');
+main('robotframework');
 
 async function main(language: LanguageId) {
   // In this demo, the following values are hardcoded to support Python using
@@ -64,11 +64,25 @@ async function main(language: LanguageId) {
       filenames: ['Snakefile', 'BUILD', 'BUCK', 'TARGETS'],
       firstLine: '^#!\\s*/?.*\\bpython[0-9.-]*\\b',
     },
+    {
+      id: 'robotframework',
+      extensions: [
+        '.robot',
+        '.resource',
+      ],
+      aliases: ['robot', 'rf'],
+      filenames: ['Snakefile', 'BUILD', 'BUCK', 'TARGETS'],
+      firstLine: '^(\\*+ ?(?:Settings|Setting)[ *]*)(?= {2,}| ?\\t| ?$)',
+    },
   ];
-  const grammars: {[scopeName: string]: DemoScopeNameInfo} = {
+  const grammars: { [scopeName: string]: DemoScopeNameInfo } = {
     'source.python': {
       language: 'python',
       path: 'MagicPython.tmLanguage.json',
+    },
+    'source.robotframework': {
+      language: 'robotframework',
+      path: 'robotframework.tmLanguage.json',
     },
   };
 
@@ -145,14 +159,46 @@ async function loadVSCodeOnigurumWASM(): Promise<Response | ArrayBuffer> {
 }
 
 function getSampleCodeForLanguage(language: LanguageId): string {
-  if (language === 'python') {
+  if (['robotframework', 'python'].indexOf(language) >= 0) {
     return `\
-import foo
+*** Settings ***
+Library           CustomLibrary.py
+Library           InPageLibrary
+Resource          keywords.resource
+Force Tags        INCL
 
-async def bar(): string:
-  f = await foo()
-  f_string = f"Hooray {f}! format strings are not supported in current Monarch grammar"
-  return foo_string
+
+*** Test Cases ***
+Test
+    Open Demo Page
+    Set Username    demo
+    Set Password    mode
+    Click Login
+
+Failed Test
+    Open Demo Page
+    Set Username    demo
+    Set Password    Wrong
+    Click Login
+    Fail    faked Fail...
+
+
+*** Keywords ***
+Open Demo Page
+    Open Browser    Demo
+    sleep   1sec
+
+Set Username
+    [Arguments]    \${user}
+    Type Text    id=username_field   \${user}
+
+Set Password
+    [Arguments]    \${pwd}
+    Type Text    id=password_field   \${pwd}
+
+
+Click Login
+    Click    id=login_button
 `;
   }
 
